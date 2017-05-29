@@ -11,6 +11,7 @@ from __future__ import print_function
 
 import itertools
 import sys
+import random
 from nltk.grammar import Nonterminal
 
 
@@ -52,7 +53,6 @@ def _generate_all(grammar, items, depth):
     else:
         yield []
 
-
 def _generate_one(grammar, item, depth):
     if depth > 0:
         if isinstance(item, Nonterminal):
@@ -72,6 +72,40 @@ demo_grammar = """
   P -> 'in' | 'with'
 """
 
+def random_choice(prods):
+    r = random.random()
+    sum_ = 0.0
+    for p in prods:
+        sum_ += p.prob()
+        if r < sum_:
+            return p
+    return lst[-1]
+
+
+def generate_prob(grammar, n, start=None, depth=None):
+    if not start:
+        start = grammar.start()
+    if not depth:
+        depth = sys.maxsize
+
+    for i in xrange(n):
+        yield _generate_one_prob(grammar, start, depth)
+
+def _generate_one_prob(grammar, item, depth):
+    if depth <= 0:
+        raise RuntimeError("The grammar has rule(s) that yield infinite recursion!!")
+
+    sentence = []
+    # random choice dependent on probabilities of the production rules
+    prod = random_choice(grammar.productions(lhs=item))
+
+    for sym in prod.rhs():
+        if isinstance(sym, Nonterminal):
+            sentence.extend(_generate_one_prob(grammar, sym, depth-1))
+        else:
+            sentence.append(sym)
+
+    return sentence
 
 def demo(N=23):
     from nltk.grammar import CFG
